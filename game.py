@@ -54,13 +54,13 @@ class Game:
         self.height = 1000
         self.window = pygame.display.set_mode((self.width, self.height))
         self.ship_base_speed = 0.22
-
+ 
         self.bg_grid_offset_x = 0
         self.bg_grid_offset_y = 0
         self.scroll_speed_x = 0
         self.scroll_speed_y = 0
 
-        self.player_alive = True
+        self.alive = True
         self.score = 0
 
         self.ships = []
@@ -69,6 +69,7 @@ class Game:
         self.bounce_sound = pygame.mixer.Sound("resources/saya_cute.ogg")
         self.hit_sound = pygame.mixer.Sound("resources/saya_kick_deeper.ogg")
         self.got_hit_sound = pygame.mixer.Sound("resources/tok10.ogg")
+        self.death_sound = pygame.mixer.Sound("resources/bloodborne-death.mp3")
 
         # Set window properties
         self.programIcon = pygame.image.load('icon.png')
@@ -166,6 +167,8 @@ class Game:
                     ship = Rare(x=x, y=y, velocities=velocities, angle=angle, game=self)
                 if type == "legendary":
                     ship = Legendary(x=x, y=y, velocities=velocities, angle=angle, game=self)
+                if type == "ghost":
+                    ship = Ghost(x=x, y=y, velocities=velocities, angle=angle, game=self)
                 self.ships.append(ship)
 
     def _draw_background(self):        
@@ -181,7 +184,6 @@ class Game:
                 y = row * 124
                 self.grid_sprite = self.sprite = pygame.image.load(choice(floors)).convert_alpha()
                 self.window.blit(self.grid_sprite, (x, y))
-
 
     def draw_bg(self, dt):
         # Define the speed and frequency of the sinusoidal movement
@@ -223,15 +225,78 @@ class Game:
         #if self.bg_y < -64:
         #    self.bg_y += 64
 
-
     def check_destroy_ship(self, word):
-        for ship in self.ships:
+        ship_destroyed = False
+        for ship in self.ships[:]: # Iterate over a copy of the list to avoid modification issues
             if ship.word.lower() == word:
                 ship.destroyed()
                 self.add_score(ship.kill_score())
-                self.player.word = ""
+                ship_destroyed = True
 
+        if ship_destroyed:
+            self.player.word = ""
 
+    def get_pirate_rank(self):
+        # Define the ranks and messages
+        ranks = [
+            (-1, "Filthy Landlubber", "You filthy landlubber! \n You’re barely fit for swabbing the deck."),
+            (100, "Pathetic Deckhand", "Still just a pathetic deckhand. \n Learn to handle the ropes if you want respect."),
+            (200, "Miserable Swabbie", "A miserable swabbie with nothing to \n show but dirt under your nails."),
+            (300, "Rough Bosun", "You’re a rough bosun, but still rough \n around the edges. Sharpen up!"),
+            (400, "Mediocre Quartermaster", "A mediocre quartermaster at best. \n You’ve got a lot to prove if you want to lead."),
+            (500, "Bossy First Mate", "You’re a bossy first mate. Commanding, \n but don’t let it go to your head."),
+            (600, "Arrogant Captain", "An arrogant captain, making waves but \n still not the best on the seas."),
+            (700, "Lousy Privateer", "A lousy privateer with a bounty that’s \n not nearly impressive enough."),
+            (800, "Hated Buccaneer", "A hated buccaneer feared by many, \n but you still have room to become a legend."),
+            (900, "Vile Corsair", "A vile corsair with a fearsome reputation. \n Your presence commands respect."),
+            (1000, "Legendary Pirate King", "The Legendary Pirate King! \n You’ve mastered the art of piracy and earned the highest honor.")
+        ]
+
+        # Determine the rank based on the score
+        for threshold, rank, message in reversed(ranks):
+            if self.score > threshold:
+                return [rank, message]
+
+        return ["Unknown Rank", "Score is out of range."]
+
+    def show_gameover_screen(self):
+
+        #self.score = 1 + 100 * 8
+
+        big_font = pygame.font.Font("resources\\fonts\\OptimusPrincepsSemiBold.ttf", 174)  # You can change the font size
+        mid_font = pygame.font.Font(None, 54) #"resources\\fonts\\coolvetica rg.otf"
+
+        rank, message = self.get_pirate_rank()
+
+        # Create a semi-transparent overlay
+        overlay = pygame.Surface((self.width, self.height))
+        overlay.set_alpha(200)  # Transparency: 0 = fully transparent, 255 = fully opaque
+        overlay.fill((0,0,0))
+        self.window.blit(overlay, (0, 0))
+
+        # Render "Game Over" text
+        game_over_text = big_font.render("YOU DIED", True, (255,22,22))
+        game_over_rect = game_over_text.get_rect(center=(self.width // 2, self.height // 2 - 50))
+        self.window.blit(game_over_text, game_over_rect)
+
+        # Render score text
+        score_text = mid_font.render(f"Score: {self.score}", True, (255,255,255))
+        score_rect = score_text.get_rect(center=(self.width // 2, self.height // 2 + 70))
+        self.window.blit(score_text, score_rect)
+
+        rank_text = mid_font.render(f"Rank: {rank}", True, (255,255,255))
+        rank_rect = rank_text.get_rect(center=(self.width // 2, self.height // 2 + 70 + 70))
+        #self.window.blit(rank_text, rank_rect)
+
+        lines = message.split('\n')
+        y_offset = self.width // 2 - 130
+        for line in lines:
+            line_text = mid_font.render(line, True, (255,255,255))
+            line_rect = line_text.get_rect(center=(self.width // 2, y_offset))
+            self.window.blit(line_text, line_rect)
+            y_offset += line_text.get_height() + 10
+
+        pygame.display.flip()
 
     def main_game_loop(self):
         clock = pygame.time.Clock()
@@ -242,49 +307,11 @@ class Game:
         ship = Ship(x=150, y=150, velocities=self.angle_to_velocities(angle), angle=angle, game=self)
         self.ships.append(ship)"""
 
+        #self.make_ships(3, "ghost")
 
         while True:
             self.dt = clock.tick() / 1000.0  # Delta time in seconds
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                elif event.type == pygame.ACTIVEEVENT:
-                    if event.gain == 0:  # Window loses focus
-                        pass  # Handle focus loss (pause, mute, etc.)
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_BACKSPACE:
-                        if pygame.key.get_mods() & pygame.KMOD_CTRL:
-                            # Ctrl + Backspace: Clear the entire typed word
-                            self.player.word = ""
-                        else:
-                            # Regular Backspace: Remove the last character from the typed word
-                            self.player.word = self.player.word[:-1]
-                    elif event.key == pygame.K_RETURN:
-                        # Check if the typed word matches any ship's word
-                        self.check_destroy_ship(self.player.word)
-                        # Reset the typed word
-                        self.player.word = ""
-                    elif event.key == pygame.K_SPACE:
-                        # Add a space to the typed word
-                        self.player.word += " "
-                    elif pygame.K_a <= event.key <= pygame.K_z:
-                        # Add the pressed letter to the typed word
-                        self.player.word += pygame.key.name(event.key)
-                        self.check_destroy_ship(self.player.word)
 
-            for ship in self.ships:
-                for other_ship in self.ships:
-                    if ship != other_ship:
-                        pass
-                ship.move(self.dt)
-            
-            spawn_director.update(self.dt)
-
-            #self.bg_grid_offset_x = (self.bg_grid_offset_x + self.scroll_speed_x * self.dt * 60) % 107
-            #self.bg_grid_offset_y = (self.bg_grid_offset_y + self.scroll_speed_y * self.dt * 60) % 107
-
-            #self.window.fill("#ABE3F5")
             self.draw_bg(self.dt)
 
             for ship in self.ships:
@@ -292,6 +319,50 @@ class Game:
 
             self.player.draw(self.window)
             
+            if self.alive == True:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                    elif event.type == pygame.ACTIVEEVENT:
+                        if event.gain == 0:  # Window loses focus
+                            pass  # Handle focus loss (pause, mute, etc.)
+                    elif event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_BACKSPACE:
+                            if pygame.key.get_mods() & pygame.KMOD_CTRL:
+                                # Ctrl + Backspace: Clear the entire typed word
+                                self.player.word = ""
+                            else:
+                                # Regular Backspace: Remove the last character from the typed word
+                                self.player.word = self.player.word[:-1]
+                        elif event.key == pygame.K_RETURN:
+                            # Check if the typed word matches any ship's word
+                            self.check_destroy_ship(self.player.word)
+                            # Reset the typed word
+                            self.player.word = ""
+                        elif event.key == pygame.K_SPACE:
+                            # Add a space to the typed word
+                            self.player.word += " "
+                        elif pygame.K_a <= event.key <= pygame.K_z:
+                            # Add the pressed letter to the typed word
+                            self.player.word += pygame.key.name(event.key)
+                            self.check_destroy_ship(self.player.word)
+
+                for ship in self.ships:
+                    #for other_ship in self.ships:
+                    #    if ship != other_ship:
+                    #        pass
+                    ship.move(self.dt)
+                
+                spawn_director.update(self.dt)
+
+            else:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                self.show_gameover_screen()
+
             pygame.display.flip()
                        
     def gameover(self, ship):
@@ -310,7 +381,7 @@ class Ship:
         self.height = self.game.height
         self.width = self.game.width
 
-        self.score = 5
+        self.score = 10
 
         self.sprite = pygame.image.load("resources\\pir\\PNG\\retina\\ships\\ship (4).png").convert_alpha()
 
@@ -465,7 +536,7 @@ class Rare(Ship):
         self.sprite = pygame.image.load("resources\\pir\\PNG\\retina\\ships\\ship (6).png").convert_alpha()
         self.word = choice(rare_words).lower()
 
-        self.score = 10
+        self.score = 20
 
 class Legendary(Ship):
     def __init__(self, x, y, velocities, angle, game):
@@ -473,7 +544,34 @@ class Legendary(Ship):
         self.sprite = pygame.image.load("resources\\pir\\PNG\\retina\\ships\\ship (3).png").convert_alpha()
         self.word = choice(legendary_words).lower()
 
-        self.score = 20
+        self.score = 30
+
+class Ghost(Ship):
+    def __init__(self, x, y, velocities, angle, game):
+        super().__init__(x, y, velocities, angle, game, radius = 20)
+        self.sprite = pygame.image.load("resources\\pir\\PNG\\retina\\ships\\ship (19).png").convert_alpha()
+        self.word = choice(easy_words).lower()
+
+        self.score = 30
+
+        speed_multi = 2
+
+        self.x_speed = velocities[0] * 300 * speed_multi   # Adjust speed factor as needed
+        self.y_speed = velocities[1] * 300 * speed_multi # Adjust speed factor as needed
+
+class Ghost(Ship):
+    def __init__(self, x, y, velocities, angle, game):
+        super().__init__(x, y, velocities, angle, game, radius = 20)
+        self.sprite = pygame.image.load("resources\\pir\\PNG\\retina\\ships\\ship (19).png").convert_alpha()
+        self.word = choice(easy_words).lower()
+
+        self.score = 30
+
+        speed_multi = 2
+
+        self.x_speed = velocities[0] * 300 * speed_multi   # Adjust speed factor as needed
+        self.y_speed = velocities[1] * 300 * speed_multi # Adjust speed factor as needed
+
 
 class Player:
     def __init__(self, game):
@@ -486,6 +584,7 @@ class Player:
         self.x = self.game.width/2
         self.y = self.game.height/2
 
+        self.alive = True
 
         self.health = 3
 
@@ -535,6 +634,7 @@ class Player:
         self.health += -1
 
         if self.health <= 0:
+            self.game.death_sound.play()
             self.sprite = pygame.image.load("resources\\pir\\PNG\\retina\\Ships\\ship (20).png").convert_alpha()
             self.game.gameover(ship)
         elif self.health == 1:
@@ -547,34 +647,36 @@ class SpawnDirector:
     def __init__(self, game):
         self.game = game  # Reference to the game object
         self.time_since_last_spawn = 0.0
-        self.base_spawn_rate = 0.5  # Initial spawn rate: enemies per second
+        self.base_spawn_rate = 0.4  # Initial spawn rate: enemies per second
         self.spawn_rate_increase = 0.05  # Rate increase per second
-        self.max_spawn_rate = 0.82  # Cap the spawn rate
+        self.max_spawn_rate = 1.0  # Cap the spawn rate
 
-        # Probabilities for different enemy types (base probabilities)
-        self.common_chance = 0.85
-        self.rare_chance = 0.1
-        self.legendary_chance = 0.05
+        # Dictionary to store enemy types and their weights and increase rates
+        self.enemy_types = {
+            'common': {'weight': 100, 'chance_increase': 0, 'type': "common"},
+            'rare': {'weight': 20, 'chance_increase': 1, 'max_chance': 0.5, 'type': "rare"},
+            'legendary': {'weight': 10, 'chance_increase': 0.5, 'max_chance': 0.2, 'type': "legendary"},
+            'ghost': {'weight': 10, 'chance_increase': 0.5, 'max_chance': 0.2, 'type': "ghost"}
+        }
 
-        # Rate at which the rare and legendary spawn chances increase
-        self.rare_chance_increase = 0.002  # Increase per second
-        self.legendary_chance_increase = 0.001  # Increase per second
-
-        # Maximum limits for rare and legendary chances
-        self.max_rare_chance = 0.5
-        self.max_legendary_chance = 0.2
-
+        # Initialize chance values for each enemy type
+        for enemy_type in self.enemy_types:
+            self.enemy_types[enemy_type]['chance'] = 0.0
 
     def update(self, delta_time):
         # Increase the spawn rate over time
         self.base_spawn_rate = min(self.max_spawn_rate, self.base_spawn_rate + self.spawn_rate_increase * delta_time)
 
-        # Increase rare and legendary spawn chances over time
-        self.rare_chance = min(self.max_rare_chance, self.rare_chance + self.rare_chance_increase * delta_time)
-        self.legendary_chance = min(self.max_legendary_chance, self.legendary_chance + self.legendary_chance_increase * delta_time)
-
-        # Adjust common chance to maintain total probability of 1
-        self.common_chance = 1.0 - self.rare_chance - self.legendary_chance
+        # Update chances for rare, legendary, and ghost enemies
+        for enemy_type, attributes in self.enemy_types.items():
+            if 'chance_increase' in attributes:
+                max_chance = attributes.get('max_chance', 1.0)
+                attributes['chance'] = min(max_chance, attributes['chance'] + attributes['chance_increase'] * delta_time)
+        
+        # Calculate total weight and adjust chances
+        total_weight = sum(attrs['weight'] for attrs in self.enemy_types.values())
+        for enemy_type, attributes in self.enemy_types.items():
+            attributes['adjusted_chance'] = attributes['weight'] / total_weight
 
         # Calculate time between spawns based on the current spawn rate
         spawn_interval = 1.0 / self.base_spawn_rate
@@ -589,17 +691,15 @@ class SpawnDirector:
             self.time_since_last_spawn -= spawn_interval
 
     def spawn_enemy(self):
-        # Determine the type of enemy to spawn based on probabilities
-        random_value = random()
-        if random_value <= self.legendary_chance:
-            print(f"Spawned 1 legendary enemy! Current spawn rate: {self.base_spawn_rate:.2f} enemies per second.")
-            self.game.make_ships(1, type="legendary")
-        elif random_value <= self.rare_chance + self.legendary_chance:
-            print(f"Spawned 1 rare enemy! Current spawn rate: {self.base_spawn_rate:.2f} enemies per second.")
-            self.game.make_ships(1, type="rare")
-        else:
-            print(f"Spawned 1 common enemy. Current spawn rate: {self.base_spawn_rate:.2f} enemies per second.")
-            self.game.make_ships(1, type="common")
+        # Determine which enemy type to spawn based on adjusted chances
+        enemy_types = list(self.enemy_types.keys())
+        chances = [self.enemy_types[et]['adjusted_chance'] for et in enemy_types]
+        chosen_enemy = choices(enemy_types, weights=chances, k=1)[0]
+        
+        # Spawn the chosen enemy type
+        print(f"Spawning {chosen_enemy} enemy.")
+
+        self.game.make_ships(1, chosen_enemy)
 
 if __name__ == "__main__":
     game = Game()
