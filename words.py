@@ -25,5 +25,40 @@ legendary_words = [
     "jolly rodger", "fathomless", "maelstrom", "lost at sea", "eternal pirate king"
 ]
 
+merchant_words = [
+    "gold", 
+    "coins", 
+    "rubies", 
+    "emeralds", 
+    "sapphires", 
+    "pearls", 
+    "jewels", 
+    "diamonds", 
+    "silver", 
+    "opals", 
+    "treasures", 
+    "artifacts", 
+    "gemstones", 
+    "ingots", 
+    "bullion"
+]
+
+ghost_ship_words = [
+    "phantom", 
+    "specter", 
+    "wraith", 
+    "shade", 
+    "death", 
+    "spirit", 
+    "haunt", 
+    "ghostly", 
+    "banshee", 
+    "siren", 
+    "revenant", 
+    "ghosts", 
+    "spooky", 
+    "kraken", 
+    "haunted"
+]
 
 letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']

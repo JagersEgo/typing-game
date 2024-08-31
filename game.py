@@ -163,12 +163,14 @@ class Game:
 
                 if type == "common":
                     ship = Ship(x=x, y=y, velocities=velocities, angle=angle, game=self)
-                if type == "rare":
+                elif type == "rare":
                     ship = Rare(x=x, y=y, velocities=velocities, angle=angle, game=self)
-                if type == "legendary":
+                elif type == "legendary":
                     ship = Legendary(x=x, y=y, velocities=velocities, angle=angle, game=self)
-                if type == "ghost":
+                elif type == "ghost":
                     ship = Ghost(x=x, y=y, velocities=velocities, angle=angle, game=self)
+                elif type == "merchant":
+                    ship = Merchant(x=x, y=y, velocities=velocities, angle=angle, game=self)
                 self.ships.append(ship)
 
     def _draw_background(self):        
@@ -541,7 +543,7 @@ class Rare(Ship):
 class Legendary(Ship):
     def __init__(self, x, y, velocities, angle, game):
         super().__init__(x, y, velocities, angle, game, radius = 20)
-        self.sprite = pygame.image.load("resources\\pir\\PNG\\retina\\ships\\ship (3).png").convert_alpha()
+        self.sprite = pygame.image.load("resources\\pir\\PNG\\retina\\ships\\ship (25).png").convert_alpha()
         self.word = choice(legendary_words).lower()
 
         self.score = 30
@@ -550,7 +552,7 @@ class Ghost(Ship):
     def __init__(self, x, y, velocities, angle, game):
         super().__init__(x, y, velocities, angle, game, radius = 20)
         self.sprite = pygame.image.load("resources\\pir\\PNG\\retina\\ships\\ship (19).png").convert_alpha()
-        self.word = choice(easy_words).lower()
+        self.word = choice(ghost_ship_words).lower()
 
         self.score = 30
 
@@ -559,18 +561,18 @@ class Ghost(Ship):
         self.x_speed = velocities[0] * 300 * speed_multi   # Adjust speed factor as needed
         self.y_speed = velocities[1] * 300 * speed_multi # Adjust speed factor as needed
 
-class Ghost(Ship):
+class Merchant(Ship):
     def __init__(self, x, y, velocities, angle, game):
         super().__init__(x, y, velocities, angle, game, radius = 20)
-        self.sprite = pygame.image.load("resources\\pir\\PNG\\retina\\ships\\ship (19).png").convert_alpha()
-        self.word = choice(easy_words).lower()
+        self.sprite = pygame.image.load("resources\\pir\\PNG\\retina\\ships\\ship (26).png").convert_alpha()
+        self.word = choice(merchant_words).lower()
 
-        self.score = 30
+        self.score = 10
 
-        speed_multi = 2
-
-        self.x_speed = velocities[0] * 300 * speed_multi   # Adjust speed factor as needed
-        self.y_speed = velocities[1] * 300 * speed_multi # Adjust speed factor as needed
+    def destroyed(self):
+        self.game.destroyed_ships[self] = 5
+        self.game.player.merchant_heal(self)
+        print (f"removed {self.word}")
 
 
 class Player:
@@ -624,6 +626,20 @@ class Player:
         text_rect = text_surface.get_rect(center=(self.x, self.y))
         surface.blit(text_surface, text_rect)
 
+    def merchant_heal(self, ship):
+        self.word = ""
+
+        self.game.ships.remove(ship) 
+
+        self.health += 1
+
+        if self.health == 2:
+            self.sprite = pygame.image.load("resources\\pir\\PNG\\retina\\Ships\\ship (8).png").convert_alpha()
+        elif self.health == 3:
+            self.sprite = pygame.image.load("resources\\pir\\PNG\\retina\\Ships\\ship (2).png").convert_alpha()
+
+
+
     def hit(self, ship):
         self.word = ""
 
@@ -656,7 +672,8 @@ class SpawnDirector:
             'common': {'weight': 100, 'chance_increase': 0, 'type': "common"},
             'rare': {'weight': 20, 'chance_increase': 1, 'max_chance': 0.5, 'type': "rare"},
             'legendary': {'weight': 10, 'chance_increase': 0.5, 'max_chance': 0.2, 'type': "legendary"},
-            'ghost': {'weight': 10, 'chance_increase': 0.5, 'max_chance': 0.2, 'type': "ghost"}
+            'ghost': {'weight': 10, 'chance_increase': 0.5, 'max_chance': 0.2, 'type': "ghost"},
+            'merchant': {'weight': 35, 'chance_increase': 0, 'max_chance': 0.05, 'type': "merchant"}
         }
 
         # Initialize chance values for each enemy type
