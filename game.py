@@ -556,7 +556,7 @@ class Ghost(Ship):
 
         self.score = 30
 
-        speed_multi = 2
+        speed_multi = 1.5
 
         self.x_speed = velocities[0] * 300 * speed_multi   # Adjust speed factor as needed
         self.y_speed = velocities[1] * 300 * speed_multi # Adjust speed factor as needed
@@ -673,7 +673,7 @@ class SpawnDirector:
             'rare': {'weight': 20, 'chance_increase': 1, 'max_chance': 0.5, 'type': "rare"},
             'legendary': {'weight': 10, 'chance_increase': 0.5, 'max_chance': 0.2, 'type': "legendary"},
             'ghost': {'weight': 10, 'chance_increase': 0.5, 'max_chance': 0.2, 'type': "ghost"},
-            'merchant': {'weight': 35, 'chance_increase': 0, 'max_chance': 0.05, 'type': "merchant"}
+            'merchant': {'weight': 3, 'chance_increase': 0, 'max_chance': 0.05, 'type': "merchant"}
         }
 
         # Initialize chance values for each enemy type
